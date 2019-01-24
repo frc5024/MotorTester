@@ -39,6 +39,7 @@ void Robot::SetMotor(int motor_id)
 	}
 
 	this->pTalonSRX = new WPI_TalonSRX(motor_id);
+	this->pTalonSRX->Set(ControlMode::PercentOutput, 0);
 	this->pTalonSRX->SetInverted(false);
 	this->IsInverted = false;
 
@@ -118,10 +119,18 @@ void Robot::TeleopPeriodic()
 	// this will only work if the talon has an encoder
 	if (this->pXboxController->GetStartButtonPressed())
 	{
-		// this->pTalonSRX->SetSelectedSensorPosition(0, 0, 100);
-		double targetPositionRotations = 10.0 * 4096; /* 10 Rotations in either direction */
-		this->pTalonSRX->Set(ControlMode::Position, targetPositionRotations);
-		this->IsClosedMode = true;
+		if(!this->IsClosedMode)
+		{
+			// this->pTalonSRX->SetSelectedSensorPosition(0, 0, 100);
+			double targetPositionRotations = 10.0 * 4096; /* 10 Rotations in either direction */
+			this->pTalonSRX->Set(ControlMode::Position, targetPositionRotations);
+			this->IsClosedMode = true;
+		}
+		else
+		{
+			this->pTalonSRX->Set(ControlMode::PercentOutput, 0);
+			this->IsClosedMode = false;
+		}
 	}
 	else if (!this->IsClosedMode)
 	{
