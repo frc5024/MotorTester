@@ -1,4 +1,5 @@
 #include "Robot.h"
+#include "Constants.h"
 
 #include <iostream>
 
@@ -41,28 +42,28 @@ void Robot::SetMotor(int motor_id)
 	this->pTalonSRX->SetInverted(false);
 	this->IsInverted = false;
 
-	this->pTalonSRX->ConfigSelectedFeedbackSensor(FeedbackDevice::CTRE_MagEncoder_Relative, 0, 100);
-	this->pTalonSRX->SetSensorPhase(false);
-	this->IsPhased = false;
+	// int absolutePosition = this->pTalonSRX->GetSensorCollection().GetPulseWidthPosition();
+	int absolutePosition = this->pTalonSRX->GetSelectedSensorPosition(0) & 0xFFF; /* mask out the bottom12 bits, we don't care about the wrap arounds */
+	this->pTalonSRX->SetSelectedSensorPosition(absolutePosition, kPIDLoopIdx, kTimeoutMs);
+	this->IsClosedMode = false;
+
+	this->pTalonSRX->ConfigSelectedFeedbackSensor(FeedbackDevice::CTRE_MagEncoder_Relative, kPIDLoopIdx, kTimeoutMs);
+	this->pTalonSRX->SetSensorPhase(true);
+	this->IsPhased = true;
 
 	/* set the peak and nominal outputs, 12V means full */
-	this->pTalonSRX->ConfigNominalOutputForward(0, 100);
-	this->pTalonSRX->ConfigNominalOutputReverse(0, 100);
-	this->pTalonSRX->ConfigPeakOutputForward(1, 100);
-	this->pTalonSRX->ConfigPeakOutputReverse(-1, 100);
+	this->pTalonSRX->ConfigNominalOutputForward(0, kTimeoutMs);
+	this->pTalonSRX->ConfigNominalOutputReverse(0, kTimeoutMs);
+	this->pTalonSRX->ConfigPeakOutputForward(1, kTimeoutMs);
+	this->pTalonSRX->ConfigPeakOutputReverse(-1, kTimeoutMs);
 
-	this->pTalonSRX->ConfigAllowableClosedloopError(0, 0, 100);
+	// this->pTalonSRX->ConfigAllowableClosedloopError(0, 0, 100);
 
 	/* set closed loop gains in slot0 */
-	this->pTalonSRX->Config_kP(0, 0.05, 100);
-	this->pTalonSRX->Config_kI(0, 0.00, 100);
-	this->pTalonSRX->Config_kD(0, 0.00, 100);
-	this->pTalonSRX->Config_kF(0, 0.00, 100);
-
-// 	int absolutePosition = this->pTalonSRX->GetSelectedSensorPosition(0) & 0xFFF; /* mask out the bottom12 bits, we don't care about the wrap arounds */
-	int absolutePosition = this->pTalonSRX->GetSensorCollection().GetPulseWidthPosition();
-	this->pTalonSRX->SetSelectedSensorPosition(absolutePosition, 0, 100);
-	this->IsClosedMode = false;
+	this->pTalonSRX->Config_kF(0, 0.00, kTimeoutMs);
+	this->pTalonSRX->Config_kP(0, 0.10, kTimeoutMs);
+	this->pTalonSRX->Config_kI(0, 0.00, kTimeoutMs);
+	this->pTalonSRX->Config_kD(0, 0.00, kTimeoutMs);
 	
 	this->pFaults = new Faults();
 	pTalonSRX->GetFaults(*pFaults);
@@ -117,8 +118,8 @@ void Robot::TeleopPeriodic()
 	// this will only work if the talon has an encoder
 	if (this->pXboxController->GetStartButtonPressed())
 	{
-		this->pTalonSRX->SetSelectedSensorPosition(0, 0, 100);
-		double targetPositionRotations = 5.0 * 8192; /* 5 Rotations in either direction */
+		// this->pTalonSRX->SetSelectedSensorPosition(0, 0, 100);
+		double targetPositionRotations = 10.0 * 4096; /* 10 Rotations in either direction */
 		this->pTalonSRX->Set(ControlMode::Position, targetPositionRotations);
 		this->IsClosedMode = true;
 	}
@@ -141,8 +142,9 @@ void Robot::TeleopPeriodic()
 		LOG("ID: " << iMotorId
 			<< " QP: " << this->pTalonSRX->GetSensorCollection().GetQuadraturePosition()
 			<< " QV: " << this->pTalonSRX->GetSensorCollection().GetQuadratureVelocity()
-			<< " SP: " << this->pTalonSRX->GetSelectedSensorPosition(0)
-			<< " SV: " << this->pTalonSRX->GetSelectedSensorVelocity(0)
+			<< " SP: " << this->pTalonSRX->GetSelectedSensorPosition(kPIDLoopIdx)
+			<< " SV: " << this->pTalonSRX->GetSelectedSensorVelocity(kPIDLoopIdx)
+			<< " LE: " << this->pTalonSRX->GetClosedLoopError(kPIDLoopIdx)
 			<< " IN: " << (IsInverted ? "True" : "False")
 			<< " IP: " << (IsPhased ? "True" : "False")
 			<< " IC: " << (IsClosedMode ? "True" : "False")

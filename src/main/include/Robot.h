@@ -1,6 +1,5 @@
-#ifndef _ROBOT_H
-#define _ROBOT_H
-
+#ifndef _ROBOT_HG_
+#define _ROBOT_HG_
 
 #include <string>
 #include <frc/IterativeRobot.h>
